@@ -1,7 +1,10 @@
 import 'package:first_app/datetime/date_time_helper.dart';
 import 'package:first_app/models/expense_item.dart';
+import 'package:flutter/cupertino.dart';
 
-class ExpenseData {
+import 'hive_database.dart';
+
+class ExpenseData extends ChangeNotifier {
   // list of all  expenses
   List<ExpenseItem> overallExpenseList = [];
 
@@ -11,16 +14,28 @@ class ExpenseData {
     return overallExpenseList;
   }
 
+
+  final db = HiveDataBase();
+  void prepareData(){
+    if(db.readData().isNotEmpty){
+      overallExpenseList = db.readData();
+    }
+  }
+
   // add new expense
 
   void addNewExpense(ExpenseItem expense) {
     overallExpenseList.add(expense);
+    notifyListeners();
+    db.saveData(overallExpenseList);
   }
 
   // delete expense
 
   void deleteExpense(ExpenseItem expense) {
     overallExpenseList.remove(expense);
+    notifyListeners();
+    db.saveData(overallExpenseList);
   }
 
   // get weekday from date
@@ -89,6 +104,19 @@ class ExpenseData {
     return total;
   }
 
+  // get total expense for a particular week
+
+  double getExpenseForWeek(DateTime date) {
+    double total = 0;
+    for (var i = 0; i < overallExpenseList.length; i++) {
+      if (overallExpenseList[i].date.isAfter(date.subtract(Duration(days: 7))) &&
+          overallExpenseList[i].date.isBefore(date)) {
+        total += overallExpenseList[i].amount;
+      }
+    }
+    return total;
+  }
+
   // get total expense for a particular day
 
   double getExpenseForDay(DateTime date) {
@@ -113,7 +141,7 @@ class ExpenseData {
 
     // go back to the start of the week
     for(int i = 0; i < 7; i++){
-      if(getWeekday(currentDate.subtract(Duration(days: i))) == "Sum"){
+      if(getWeekday(currentDate.subtract(Duration(days: i))) == "Sun"){
         startOfWeek = currentDate.subtract(Duration(days: i));
       }
     }
